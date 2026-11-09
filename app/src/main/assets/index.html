@@ -13,7 +13,7 @@ main{max-width:480px;margin:0 auto;padding:10px 8px 16px}
 h1{font-family:Georgia,"Times New Roman",serif;font-size:26px;margin:4px 0 2px;letter-spacing:.5px}
 .sub{margin:0 0 8px;font-size:13px;opacity:.75}
 #msg{min-height:40px;padding:8px 10px;background:var(--card);border-left:4px solid var(--hl);border-radius:4px;font-size:14px;margin-bottom:8px}
-#board{display:grid;grid-template-columns:repeat(9,1fr);gap:0;border:3px solid var(--ink);border-radius:4px;overflow:hidden;width:100%}
+#board{display:grid;grid-template-columns:repeat(9,1fr);gap:0;border:10px solid var(--frame);border-radius:10px;width:100%;transform:rotateX(34deg);transform-style:preserve-3d;transform-origin:50% 70%;background:var(--frame);box-shadow:0 1px var(--fr-d),0 2px var(--fr-d),0 3px var(--fr-d),0 4px var(--fr-d),0 5px var(--fr-d),0 6px var(--fr-d),0 7px var(--fr-d),0 8px var(--fr-d),0 9px var(--fr-d),0 10px var(--fr-dd),0 32px 30px rgba(0,0,0,.45)}
 .c{aspect-ratio:1/1.05;display:flex;align-items:center;justify-content:center;position:relative;padding:2px}
 .c:nth-child(odd){background:var(--sq1)}.c:nth-child(even){background:var(--sq2)}
 .c.sel{outline:3px solid var(--hl);outline-offset:-3px}
@@ -33,20 +33,54 @@ button.pri{background:var(--ink);color:var(--bg)}
 button:focus-visible{outline:3px solid var(--hl)}
 details{margin-top:12px;font-size:13px;line-height:1.5;background:var(--card);padding:8px 10px;border-radius:6px}
 summary{font-weight:700}
+#tray{display:none;flex-wrap:wrap;gap:8px;margin-top:8px;padding:8px;background:var(--card);border-radius:6px;min-height:58px;align-items:center}
+.tp{width:46px;height:42px;position:relative;cursor:pointer}
+.tp .p{width:100%;height:100%}
+.tp b{position:absolute;top:-6px;right:-6px;background:var(--hl);color:#000;font-size:11px;border-radius:9px;padding:0 5px;line-height:16px}
+.tp.on{outline:3px solid var(--hl);outline-offset:1px;border-radius:6px}
+.hint{font-size:13px;opacity:.8}
+button:disabled{opacity:.4}
+:root[data-theme="dark"]{--bg:#14201f;--ink:#efe8d4;--sq1:#26352f;--sq2:#2d3f38;--me:#4b9bd1;--foe:#d9626a;--hl:#e8b23a;--card:#1c2b29}
+header{display:flex;align-items:center;justify-content:space-between}
+:root{--frame:#8a5a2b;--fr-d:color-mix(in srgb,var(--frame) 68%,#000);--fr-dd:color-mix(in srgb,var(--frame) 52%,#000)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--frame:#2c4048}}
+:root[data-theme="dark"]{--frame:#2c4048}
+#gear{flex:none;width:44px;height:44px;padding:0;font-size:22px;border-radius:50%}
+#settings{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#settings[hidden]{display:none}
+.sbox{background:var(--card);border-radius:12px;padding:16px;width:100%;max-width:340px;border:2px solid var(--ink)}
+.sbox h2{margin:0 0 6px;font-family:Georgia,serif;font-size:20px}
+.sbox label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
+.seg{display:flex;gap:6px}
+.seg button{padding:10px 4px;font-size:14px}
+.seg button.on{background:var(--ink);color:var(--bg)}
+#stage{perspective:1000px;perspective-origin:50% 30%;padding:18px 2px 22px}
+.c{transform-style:preserve-3d}
+#board .p{transform:translateZ(7px) rotateX(-34deg);transform-origin:50% 100%;transition:transform .18s}
+#board .c.sel .p{transform:translateZ(20px) rotateX(-34deg)}
+.p{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -3px 0 rgba(0,0,0,.18),0 3px 0 rgba(0,0,0,.4),0 6px 7px rgba(0,0,0,.4)}
+.p.me{background:linear-gradient(155deg,color-mix(in srgb,var(--me) 70%,#fff),var(--me) 50%,color-mix(in srgb,var(--me) 75%,#000))}
+.p.foe{background:linear-gradient(155deg,color-mix(in srgb,var(--foe) 70%,#fff),var(--foe) 50%,color-mix(in srgb,var(--foe) 75%,#000))}
 </style>
 </head>
 <body>
 <main>
-<h1>Salpakan</h1>
+<header><h1>Salpakan</h1><button id="gear" aria-label="Settings">⚙</button></header>
 <p class="sub">Game of the Generals · you are blue, at the bottom</p>
 <div id="msg"></div>
-<div id="board" role="grid" aria-label="Game board"></div>
+<div id="stage"><div id="board" role="grid" aria-label="Game board"></div></div>
+<div id="tray"></div>
+<div class="row" id="setup"><button id="sh">Random setup</button><button id="cl">Manual setup</button></div>
 <div class="row"><button id="b1" class="pri"></button><button id="b2">New game</button></div>
 <details><summary>How to play</summary>
 <p>Move one piece one square up, down, left or right. Move onto an enemy piece to challenge it. The higher rank wins and the loser is removed; equal ranks both go. You never see enemy ranks.</p>
 <p>Ranks, strongest first. The Spy beats every officer but loses to the Private. Anything that challenges the Flag wins.</p><div id="legend"></div>
-<p>Win by capturing the enemy Flag or by walking your Flag to the far row. Before starting, tap two of your pieces to swap them.</p></details>
+<p>Win by capturing the enemy Flag or by walking your Flag to the far row. Before starting, choose Random setup or Manual setup to arrange your pieces.</p></details>
 </main>
+<div id="settings" hidden><div class="sbox"><h2>Settings</h2>
+<label>Appearance</label><div class="seg" data-k="theme"><button data-v="auto">Auto</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div>
+<label>Computer difficulty</label><div class="seg" data-k="diff"><button data-v="0">Easy</button><button data-v="1">Medium</button><button data-v="2">Hard</button></div>
+<div class="row"><button id="sx" class="pri">Done</button></div></div></div>
 <script>
 const N=['Gen. Army','General','Lt. Gen.','Maj. Gen.','Brig. Gen.','Colonel','Lt. Col.','Major','Captain','1st Lt.','2nd Lt.','Sergeant','Private','Spy','Flag'];
 const F=['General of the Army','General','Lieutenant General','Major General','Brigadier General','Colonel','Lieutenant Colonel','Major','Captain','First Lieutenant','Second Lieutenant','Sergeant','Private','Spy','Flag'];
@@ -77,7 +111,7 @@ function sym(r){
 }
 const CNT=[1,1,1,1,1,1,1,1,1,1,1,1,6,2,1];
 const W=9,H=8;
-let B,phase,turn,sel,busy;
+let B,phase,turn,sel,busy,pick=null,tray=CNT.slice();
 const $=id=>document.getElementById(id);
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function deck(){const d=[];CNT.forEach((n,i)=>{for(let k=0;k<n;k++)d.push(i)});return d}
@@ -88,10 +122,56 @@ function place(owner){
   d.forEach((rk,i)=>{B[cells[i]]={o:owner,r:rk}});
 }
 function mine(){const cells=[];for(let r=5;r<8;r++)for(let c=0;c<W;c++)cells.push(r*W+c);return cells}
+let cfg={theme:'auto',diff:1};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('salp')||'{}'))}catch(e){}
+function applyCfg(){
+  const r=document.documentElement;
+  if(cfg.theme==='auto')r.removeAttribute('data-theme');else r.dataset.theme=cfg.theme;
+  document.querySelectorAll('.seg').forEach(g=>g.querySelectorAll('button').forEach(b=>{
+    const v=g.dataset.k==='theme'?cfg.theme:String(cfg.diff);b.classList.toggle('on',b.dataset.v===v)}));
+  try{localStorage.setItem('salp',JSON.stringify(cfg))}catch(e){}
+}
+function winProb(ar,d){
+  let tot=0,w=0;
+  CNT.forEach((n,c)=>{
+    if(c===14&&d.m)return;
+    if(d.strong!==undefined&&c>=d.strong)return;
+    if(d.weak!==undefined&&c<=d.weak)return;
+    tot+=n;const x=resolve(ar,c);w+=x==='a'?n:x==='both'?n*.4:0;
+  });
+  return tot?w/tot:.5;
+}
+function score(i,j){
+  const a=B[i],d=B[j],fw=Math.floor(j/W)-Math.floor(i/W);
+  if(cfg.diff===0)return Math.random()*3+(fw>0?.5:0)+(d?Math.random()*1.5:0);
+  if(cfg.diff===1){let s=Math.random()*2+(fw>0?1.5:0)+(d?(a.r<=8?1.2:-.8):0);if(d&&a.r===13)s-=.5;return s}
+  let s=Math.random()*.6+(fw>0?1:fw<0?-.4:0);
+  if(d){const p=winProb(a.r,d);s+=(p*2-1)*3+((!d.m&&p>.5)?.8:0);if(a.r<=4&&p<.6)s-=2}
+  return s;
+}
+function remaining(){return tray.reduce((a,b)=>a+b,0)}
+function updTray(){
+  const t=$('tray');t.innerHTML='';
+  tray.forEach((n,r)=>{
+    if(!n)return;
+    const d=document.createElement('div');
+    d.className='tp'+(pick===r?' on':'');d.title=F[r];
+    d.innerHTML='<div class="p me">'+sym(r)+'<span class="lb">'+N[r]+'</span></div>'+(n>1?'<b>'+n+'</b>':'');
+    d.onclick=e=>{e.stopPropagation();pick=pick===r?null:r;sel=null;render()};
+    t.appendChild(d);
+  });
+  if(!remaining())t.innerHTML='<span class="hint">All 21 pieces placed. Press Start game.</span>';
+}
+function resetMine(manual){
+  mine().forEach(i=>B[i]=null);sel=null;pick=null;tray=Array(15).fill(0);
+  if(manual){tray=CNT.slice();msg('Manual setup: tap a piece in the tray, then an empty square in your three rows. Tap a placed piece to move it.')}
+  else{place('p');msg('Random setup. Tap two pieces to swap them, or try Manual setup.')}
+  render();
+}
 function init(){
   B=Array(W*H).fill(null);phase='setup';turn='p';sel=null;busy=false;
-  place('p');place('c');
-  msg('Arrange your pieces: tap two squares to swap them, then start.');
+  place('p');place('c');tray=Array(15).fill(0);pick=null;
+  msg('Random setup ready. Tap two pieces to swap them, or choose Manual setup to place them yourself.');
   $('b1').textContent='Start game';render();
 }
 function resolve(a,d){
@@ -114,6 +194,10 @@ function targets(i){
   return t;
 }
 function render(over){
+  const su=phase==='setup';
+  $('setup').style.display=su?'flex':'none';$('tray').style.display=su?'flex':'none';
+  $('b1').disabled=su&&remaining()>0;
+  if(su)updTray();
   const el=$('board');el.innerHTML='';
   const tg=sel!==null&&phase==='play'?targets(sel):[];
   for(let i=0;i<W*H;i++){
@@ -135,7 +219,9 @@ function tap(i){
   if(busy||phase==='over')return;
   if(phase==='setup'){
     if(Math.floor(i/W)<5)return;
-    if(sel===null){sel=i}
+    if(pick!==null){if(!B[i]){B[i]={o:'p',r:pick};tray[pick]--;if(!tray[pick])pick=null}return render()}
+    if(sel!==null&&!B[i]){B[i]=B[sel];B[sel]=null;sel=null;return render()}
+    if(sel===null){if(B[i]){sel=i;msg('Tap an empty square to move it, another piece to swap, or the tray to take it back.')}}
     else{if(sel!==i){[B[sel],B[i]]=[B[i],B[sel]]}sel=null}
     return render();
   }
@@ -148,11 +234,12 @@ function tap(i){
   }
 }
 function move(from,to,who){
-  const a=B[from],d=B[to];let t='';
+  const a=B[from],d=B[to];let t='';a.m=1;
   const me=who==='p';
   if(!d){B[to]=a;B[from]=null;t=me?'You moved.':'The opponent moved.'}
   else{
     const res=resolve(a.r,d.r);
+    if(res!=='both'&&d.r!==14&&a.r!==14){const pp=a.o==='p'?a:d,cc=a.o==='p'?d:a,pw=(res==='a')===(a.o==='p');if(pw)pp.strong=Math.min(pp.strong===undefined?99:pp.strong,cc.r);else pp.weak=Math.max(pp.weak===undefined?-1:pp.weak,cc.r)}
     if(d.r===14&&res==='a'){B[to]=a;B[from]=null;render(true);return end(me,me?'You captured the enemy Flag!':'The opponent captured your Flag.')}
     if(res==='a'){B[to]=a;B[from]=null;t=me?'Your piece won the challenge.':'Your piece was eliminated.'}
     else if(res==='d'){B[from]=null;t=me?'Your piece was eliminated.':'Your piece defended and won.'}
@@ -176,13 +263,8 @@ function cpu(){
   let ms=[];
   B.forEach((p,i)=>{if(p&&p.o==='c'&&p.r!==14)targets(i).forEach(j=>ms.push([i,j]))});
   if(!ms.length)B.forEach((p,i)=>{if(p&&p.o==='c')targets(i).forEach(j=>ms.push([i,j]))});
-  let best=null,bs=-1;
-  ms.forEach(([i,j])=>{
-    const r=Math.floor(j/W)-Math.floor(i/W);
-    let s=Math.random()*2+(r>0?1.5:0)+(B[j]?(B[i].r<=8?1.2:-0.8):0);
-    if(B[j]&&B[i].r===13)s-=0.5;
-    if(s>bs){bs=s;best=[i,j]}
-  });
+  let best=null,bs=-1e9;
+  ms.forEach(([i,j])=>{const s=score(i,j);if(s>bs){bs=s;best=[i,j]}});
   move(best[0],best[1],'c');
   if(phase==='play'){turn='p';msg($('msg').textContent+' Your move.')}
 }
@@ -199,6 +281,14 @@ function startOrReset(){
 }
 $('b1').onclick=startOrReset;
 $('b2').onclick=init;
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{const k=b.parentNode.dataset.k;cfg[k]=k==='diff'?+b.dataset.v:b.dataset.v;applyCfg()});
+$('gear').onclick=()=>{$('settings').hidden=false};
+$('sx').onclick=()=>{$('settings').hidden=true};
+$('settings').onclick=e=>{if(e.target.id==='settings')e.target.hidden=true};
+applyCfg();
+$('sh').onclick=()=>resetMine(false);
+$('cl').onclick=()=>resetMine(true);
+$('tray').onclick=()=>{if(phase==='setup'&&sel!==null&&B[sel]){tray[B[sel].r]++;B[sel]=null;sel=null;render()}};
 init();
 $('legend').innerHTML=F.map((f,i)=>'<div class="lg"><div class="p me">'+sym(i)+'<span class="lb">'+N[i]+'</span></div><span>'+f+(i===12?' ×6':i===13?' ×2':'')+'</span></div>').join('');
 </script>
