@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salpakan</title>
+<style>
+:root{--bg:#f3efe2;--ink:#1d2a2e;--sq1:#e6dcc0;--sq2:#d8cba6;--me:#1f5c8b;--foe:#a8323a;--hl:#e0a21b;--card:#fffaf0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14201f;--ink:#efe8d4;--sq1:#26352f;--sq2:#2d3f38;--me:#4b9bd1;--foe:#d9626a;--hl:#e8b23a;--card:#1c2b29}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+main{max-width:480px;margin:0 auto;padding:10px 8px 16px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:26px;margin:4px 0 2px;letter-spacing:.5px}
+.sub{margin:0 0 8px;font-size:13px;opacity:.75}
+#msg{min-height:40px;padding:8px 10px;background:var(--card);border-left:4px solid var(--hl);border-radius:4px;font-size:14px;margin-bottom:8px}
+#board{display:grid;grid-template-columns:repeat(9,1fr);gap:0;border:3px solid var(--ink);border-radius:4px;overflow:hidden;width:100%}
+.c{aspect-ratio:1/1.05;display:flex;align-items:center;justify-content:center;position:relative;padding:2px}
+.c:nth-child(odd){background:var(--sq1)}.c:nth-child(even){background:var(--sq2)}
+.c.sel{outline:3px solid var(--hl);outline-offset:-3px}
+.c.tg::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:var(--hl);opacity:.85}
+.c.tg.has::after{width:92%;height:92%;background:none;border:3px solid var(--hl);border-radius:6px}
+.c.zone{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--me) 40%,transparent)}
+.p{width:100%;height:100%;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-weight:700;font-size:clamp(9px,2.7vw,13px);color:#fff;border:1.5px solid rgba(0,0,0,.35);user-select:none;overflow:hidden}
+.p svg{width:100%;height:58%}
+.lb{font-size:clamp(6px,1.9vw,9px);line-height:1;font-weight:700;white-space:nowrap}
+#legend{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lg{display:flex;align-items:center;gap:6px;font-size:12px}
+.lg .p{width:46px;height:42px;flex:none}
+.p.me{background:var(--me)}.p.foe{background:var(--foe);font-size:clamp(12px,3.6vw,17px)}
+.row{display:flex;gap:8px;margin-top:10px}
+button{flex:1;font:inherit;font-weight:700;padding:12px;border:2px solid var(--ink);background:var(--card);color:var(--ink);border-radius:6px}
+button.pri{background:var(--ink);color:var(--bg)}
+button:focus-visible{outline:3px solid var(--hl)}
+details{margin-top:12px;font-size:13px;line-height:1.5;background:var(--card);padding:8px 10px;border-radius:6px}
+summary{font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<h1>Salpakan</h1>
+<p class="sub">Game of the Generals · you are blue, at the bottom</p>
+<div id="msg"></div>
+<div id="board" role="grid" aria-label="Game board"></div>
+<div class="row"><button id="b1" class="pri"></button><button id="b2">New game</button></div>
+<details><summary>How to play</summary>
+<p>Move one piece one square up, down, left or right. Move onto an enemy piece to challenge it. The higher rank wins and the loser is removed; equal ranks both go. You never see enemy ranks.</p>
+<p>Ranks, strongest first. The Spy beats every officer but loses to the Private. Anything that challenges the Flag wins.</p><div id="legend"></div>
+<p>Win by capturing the enemy Flag or by walking your Flag to the far row. Before starting, tap two of your pieces to swap them.</p></details>
+</main>
+<script>
+const N=['Gen. Army','General','Lt. Gen.','Maj. Gen.','Brig. Gen.','Colonel','Lt. Col.','Major','Captain','1st Lt.','2nd Lt.','Sergeant','Private','Spy','Flag'];
+const F=['General of the Army','General','Lieutenant General','Major General','Brigadier General','Colonel','Lieutenant Colonel','Major','Captain','First Lieutenant','Second Lieutenant','Sergeant','Private','Spy','Flag'];
+function star(cx,cy,R){const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?R*.42:R;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1))}return '<polygon points="'+p.join(' ')+'" fill="#f2c744"/>'}
+function sym(r){
+  const G='#f2c744',S='#e4e8ec';let b='';
+  const stars=(pts,R)=>pts.map(q=>star(q[0],q[1],R)).join('');
+  const leaf=c=>'<path d="M20 3 C31 8 31 20 20 24 C9 20 9 8 20 3Z" fill="'+c+'"/><path d="M20 24 V28" stroke="'+c+'" stroke-width="2"/><path d="M20 8 V22" stroke="rgba(0,0,0,.35)" stroke-width="1"/>';
+  const chev=y=>'<polyline points="6,'+(y+7)+' 20,'+y+' 34,'+(y+7)+'" fill="none" stroke="'+S+'" stroke-width="3.2"/>';
+  switch(r){
+    case 0:b=stars([[8,8],[20,8],[32,8],[14,20],[26,20]],6.5);break;
+    case 1:b=stars([[13,8],[27,8],[13,20],[27,20]],7);break;
+    case 2:b=stars([[20,7],[11,20],[29,20]],7);break;
+    case 3:b=stars([[12,14],[28,14]],8);break;
+    case 4:b=stars([[20,14]],11);break;
+    case 5:b='<path d="M20 4 L24 11 L37 6 L31 17 L26 16 L24 24 L20 20 L16 24 L14 16 L9 17 L3 6 L16 11 Z" fill="'+S+'"/>';break;
+    case 6:b=leaf(S);break;
+    case 7:b=leaf(G);break;
+    case 8:b='<rect x="6" y="10" width="12" height="8" fill="'+S+'"/><rect x="22" y="10" width="12" height="8" fill="'+S+'"/>';break;
+    case 9:b='<rect x="14" y="10" width="12" height="8" fill="'+S+'"/>';break;
+    case 10:b='<rect x="14" y="10" width="12" height="8" fill="'+G+'"/>';break;
+    case 11:b=chev(3)+chev(10)+chev(17);break;
+    case 12:b=chev(10);break;
+    case 13:b='<ellipse cx="11" cy="15" rx="8" ry="5" fill="#fff"/><ellipse cx="29" cy="15" rx="8" ry="5" fill="#fff"/><circle cx="12" cy="15" r="3" fill="#111"/><circle cx="28" cy="15" r="3" fill="#111"/><path d="M3 8 Q11 4 19 8 M21 8 Q29 4 37 8" stroke="#fff" stroke-width="1.6" fill="none"/>';break;
+    default:b='<rect x="10" y="3" width="2.5" height="23" fill="'+S+'"/><path d="M12.5 4 H33 L28 10 L33 16 H12.5Z" fill="#ff6b5e"/>';
+  }
+  return '<svg viewBox="0 0 40 28" aria-hidden="true">'+b+'</svg>';
+}
+const CNT=[1,1,1,1,1,1,1,1,1,1,1,1,6,2,1];
+const W=9,H=8;
+let B,phase,turn,sel,busy;
+const $=id=>document.getElementById(id);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function deck(){const d=[];CNT.forEach((n,i)=>{for(let k=0;k<n;k++)d.push(i)});return d}
+function place(owner){
+  const rows=owner==='p'?[5,6,7]:[0,1,2];
+  const cells=[];rows.forEach(r=>{for(let c=0;c<W;c++)cells.push(r*W+c)});
+  shuffle(cells);const d=deck();
+  d.forEach((rk,i)=>{B[cells[i]]={o:owner,r:rk}});
+}
+function mine(){const cells=[];for(let r=5;r<8;r++)for(let c=0;c<W;c++)cells.push(r*W+c);return cells}
+function init(){
+  B=Array(W*H).fill(null);phase='setup';turn='p';sel=null;busy=false;
+  place('p');place('c');
+  msg('Arrange your pieces: tap two squares to swap them, then start.');
+  $('b1').textContent='Start game';render();
+}
+function resolve(a,d){
+  if(a===14)return d===14?'a':'d';
+  if(d===14)return 'a';
+  if(a===d)return 'both';
+  if(a===13)return d===12?'d':'a';
+  if(d===13)return a===12?'a':'d';
+  return a<d?'a':'d';
+}
+function msg(t){$('msg').textContent=t}
+function targets(i){
+  const r=Math.floor(i/W),c=i%W,t=[];
+  [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+    const nr=r+dr,nc=c+dc;
+    if(nr<0||nr>=H||nc<0||nc>=W)return;
+    const j=nr*W+nc;
+    if(!B[j]||B[j].o!==B[i].o)t.push(j);
+  });
+  return t;
+}
+function render(over){
+  const el=$('board');el.innerHTML='';
+  const tg=sel!==null&&phase==='play'?targets(sel):[];
+  for(let i=0;i<W*H;i++){
+    const d=document.createElement('div');
+    d.className='c'+(i===sel?' sel':'')+(tg.includes(i)?' tg'+(B[i]?' has':''):'')+(phase==='setup'&&Math.floor(i/W)>=5?' zone':'');
+    d.setAttribute('role','gridcell');
+    const p=B[i];
+    if(p){
+      const s=document.createElement('div');
+      if(p.o==='p'||over){s.className='p '+(p.o==='p'?'me':'foe');s.innerHTML=sym(p.r)+'<span class="lb">'+N[p.r]+'</span>';s.title=F[p.r]}
+      else{s.className='p foe';s.textContent='◆'}
+      d.appendChild(s);
+    }
+    d.onclick=()=>tap(i);
+    el.appendChild(d);
+  }
+}
+function tap(i){
+  if(busy||phase==='over')return;
+  if(phase==='setup'){
+    if(Math.floor(i/W)<5)return;
+    if(sel===null){sel=i}
+    else{if(sel!==i){[B[sel],B[i]]=[B[i],B[sel]]}sel=null}
+    return render();
+  }
+  if(turn!=='p')return;
+  if(B[i]&&B[i].o==='p'){sel=i;msg('Selected: '+F[B[i].r]+'.');return render()}
+  if(sel!==null&&targets(sel).includes(i)){
+    const from=sel;sel=null;
+    move(from,i,'p');
+    if(phase==='play'){turn='c';busy=true;setTimeout(cpu,650)}
+  }
+}
+function move(from,to,who){
+  const a=B[from],d=B[to];let t='';
+  const me=who==='p';
+  if(!d){B[to]=a;B[from]=null;t=me?'You moved.':'The opponent moved.'}
+  else{
+    const res=resolve(a.r,d.r);
+    if(d.r===14&&res==='a'){B[to]=a;B[from]=null;render(true);return end(me,me?'You captured the enemy Flag!':'The opponent captured your Flag.')}
+    if(res==='a'){B[to]=a;B[from]=null;t=me?'Your piece won the challenge.':'Your piece was eliminated.'}
+    else if(res==='d'){B[from]=null;t=me?'Your piece was eliminated.':'Your piece defended and won.'}
+    else{B[from]=null;B[to]=null;t='Equal ranks: both pieces eliminated.'}
+  }
+  msg(t);
+  // flag reaching far row
+  const f=B[to];
+  if(f&&f.r===14&&((f.o==='p'&&Math.floor(to/W)===0)||(f.o==='c'&&Math.floor(to/W)===H-1))){render(true);return end(me,me?'Your Flag reached the far row!':'The opponent’s Flag reached your side.')}
+  render();
+  // no movable pieces for next side
+  const nx=me?'c':'p';
+  if(!B.some((p,i)=>p&&p.o===nx&&targets(i).length)){render(true);end(me,me?'The opponent has no moves left.':'You have no moves left.')}
+}
+function end(playerWon,t){
+  phase='over';busy=false;msg(t+(playerWon?' You win!':' You lose.'));
+  $('b1').textContent='Play again';
+}
+function cpu(){
+  busy=false;if(phase!=='play')return;
+  let ms=[];
+  B.forEach((p,i)=>{if(p&&p.o==='c'&&p.r!==14)targets(i).forEach(j=>ms.push([i,j]))});
+  if(!ms.length)B.forEach((p,i)=>{if(p&&p.o==='c')targets(i).forEach(j=>ms.push([i,j]))});
+  let best=null,bs=-1;
+  ms.forEach(([i,j])=>{
+    const r=Math.floor(j/W)-Math.floor(i/W);
+    let s=Math.random()*2+(r>0?1.5:0)+(B[j]?(B[i].r<=8?1.2:-0.8):0);
+    if(B[j]&&B[i].r===13)s-=0.5;
+    if(s>bs){bs=s;best=[i,j]}
+  });
+  move(best[0],best[1],'c');
+  if(phase==='play'){turn='p';msg($('msg').textContent+' Your move.')}
+}
+$('b1').onclick=()=>{
+  if(phase==='setup'){phase='play';sel=null;msg('Game on. Tap a piece, then a highlighted square.');$('b1').textContent='Reshuffle';$('b1').onclick=null;$('b1').onclick=main;render()}
+  else init2();
+};
+function main(){if(phase==='play')return;init2()}
+function init2(){init();$('b1').onclick=startOrReset}
+function startOrReset(){
+  if(phase==='setup'){phase='play';sel=null;msg('Game on. Tap a piece, then a highlighted square.');$('b1').textContent='Resign';render()}
+  else if(phase==='play'){render(true);end(false,'You resigned.')}
+  else init();
+}
+$('b1').onclick=startOrReset;
+$('b2').onclick=init;
+init();
+$('legend').innerHTML=F.map((f,i)=>'<div class="lg"><div class="p me">'+sym(i)+'<span class="lb">'+N[i]+'</span></div><span>'+f+(i===12?' ×6':i===13?' ×2':'')+'</span></div>').join('');
+</script>
+</body>
+</html>
